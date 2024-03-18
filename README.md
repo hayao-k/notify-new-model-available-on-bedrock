@@ -9,6 +9,9 @@ The application periodically checks for new models available on Bedrock and noti
 
 It is assumed that the SNS Topic and AWS Chatbot for notification have already been created and configured.
 
+### Notificateion Exapmle
+![](https://raw.githubusercontent.com/hayao-k/notify-new-model-available-on-bedrock/main/images/example.png)
+
 ## Prerequisites
 
 Before deploying this application, ensure you have the following:
