@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS SAM template for notify-new-model-available-on-bedrock
+
+Parameters:
+  pTopicName:
+    Type: String
+    Description: The Name of the SNS topic for notifications.
+    Default: "AWSChatbot-Topic"
+  pRateMinute:
+    Type: String
+    Description: Rate minutes to be set in EventBridge scheduler.
+    Default: "5"
+
+Resources:
+  ModelsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  NotifyNewModelsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: INFO
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref ModelsTable
+          TOPIC_NAME: !Ref pTopicName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ModelsTable
+        - SNSPublishMessagePolicy:
+            TopicName: !Ref pTopicName
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:ListFoundationModels
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: !Sub 'rate(${pRateMinutes} minute)'
+            State: ENABLED
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${NotifyNewModelsFunction}'
+      RetentionInDays: 3
+
+Outputs:
+  ModelsTableArn:
+    Description: "ARN of the DynamoDB table"
+    Value: !GetAtt ModelsTable.Arn
+
+  NotifyNewModelsFunctionArn:
+    Description: "ARN of the Lambda function"
+    Value: !GetAtt NotifyNewModelsFunction.Arn
