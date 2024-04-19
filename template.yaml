@@ -60,7 +60,7 @@ Resources:
         ScheduleEvent:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: !Sub 'rate(${pRateMinutes} minute)'
+            ScheduleExpression: !Sub 'rate(${pRateMinute} minute)'
             State: ENABLED
 
   LogGroup:
